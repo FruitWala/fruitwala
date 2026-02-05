@@ -13,8 +13,10 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ IMPORTANT FIX: Capitalized model name
-const Product =
-  mongoose.models.Product || mongoose.model("Product", productSchema);
+const Product = mongoose.models.Product || mongoose.model(
+  "Product",
+  productSchema,
+  "products" // 👈 force correct collection
+);
 
 export default Product;

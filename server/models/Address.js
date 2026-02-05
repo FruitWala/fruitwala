@@ -20,8 +20,10 @@ const addressSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ FIXED: Capitalized model name
-const Address =
-  mongoose.models.Address || mongoose.model("Address", addressSchema);
-
+const Address = mongoose.models.Address || mongoose.model(
+  "Address",
+  addressSchema,
+  "addresses"
+);
 export default Address;
+

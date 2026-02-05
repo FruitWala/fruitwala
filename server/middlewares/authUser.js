@@ -1,31 +1,35 @@
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
-const authUser = async (req, res, next)=>{
-    const token = req.cookies.token;
+const authUser = async (req, res, next) => {
+  // ✅ FIX: read correct cookie name
+  const token = req.cookies.userToken;
 
-     // 🔍 DEBUG LOG 1
-        console.log("COOKIE:", token);
+  console.log("🍪 USER COOKIE:", token);
 
-    if(!token){
-        return res.json({ success: false, message: 'User Not Authenticated' });
-    }
+  if (!token) {
+    return res.json({
+      success: false,
+      message: "User Not Authenticated",
+    });
+  }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        
-        // 🔍 DEBUG LOG 2
-        console.log("DECODED JWT:", decoded);
-        
-        req.userId = decoded.id;
-        
-        // 🔍 DEBUG LOG 3
-        console.log("USER ID SET ON REQ:", req.userId);
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        next();
-    } catch (error) {
-        console.log("❌ JWT ERROR:", error.message);
-        res.json({ success: false, message: "User Not Authenticated" });
-    }
+    console.log("🔓 DECODED JWT:", decoded);
+
+    req.userId = decoded.id;
+
+    console.log("✅ USER ID SET:", req.userId);
+
+    next();
+  } catch (error) {
+    console.log("❌ JWT ERROR:", error.message);
+    return res.json({
+      success: false,
+      message: "User Not Authenticated",
+    });
+  }
 };
 
 export default authUser;

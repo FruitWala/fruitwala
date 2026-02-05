@@ -1,41 +1,72 @@
-import cookieParser from 'cookie-parser';
-import express from 'express';
-import cors from 'cors';
-import connectDB from './configs/db.js';
-import 'dotenv/config'; 
-import userRouter from './routes/userRoute.js';
-import sellerRouter from './routes/sellerRoutes.js';
-import connectCloudinary from './configs/cloudinary.js';
-import productRouter from './routes/productRoute.js';
-import cartRouter from './routes/cartRoute.js';
-import addressRouter from './routes/addressRoute.js';
-import orderRouter from './routes/orderRoute.js';
+import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import "dotenv/config";
+
+import connectDB from "./configs/db.js";
+import connectCloudinary from "./configs/cloudinary.js";
+
+import userRouter from "./routes/userRoute.js";
+import sellerRouter from "./routes/sellerRoutes.js";
+import productRouter from "./routes/productRoute.js";
+import cartRouter from "./routes/cartRoute.js";
+import addressRouter from "./routes/addressRoute.js";
+import orderRouter from "./routes/orderRoute.js";
 
 const app = express();
 const port = process.env.PORT || 4000;
 
-await connectDB()
-await connectCloudinary()
+/* ===============================
+   Database & Cloudinary
+================================ */
+await connectDB();
+await connectCloudinary();
 
-// Allow Multiple Origins
+/* ===============================
+   CORS Configuration
+================================ */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://fruitwala-two.vercel.app"
+];
 
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow server-to-server
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
-// Middleware configuration
+/* ===============================
+   Middleware
+================================ */
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/', (req, res) => res.send("API is Working"));
-app.use('/api/user', userRouter)
-app.use('/api/seller', sellerRouter)
-app.use('/api/product', productRouter)
-app.use('/api/cart', cartRouter)
-app.use('/api/address', addressRouter)
-app.use('/api/order', orderRouter)
+/* ===============================
+   Routes
+================================ */
+app.get("/", (req, res) => {
+  res.send("FruitWala API is running 🚀");
+});
 
-app.listen(port, ()=>{
-    console.log(`Server is running on http://localhost:${port}`)
-})
+app.use("/api/user", userRouter);
+app.use("/api/seller", sellerRouter);
+app.use("/api/product", productRouter);
+app.use("/api/cart", cartRouter);
+app.use("/api/address", addressRouter);
+app.use("/api/order", orderRouter);
+
+/* ===============================
+   Server Start
+================================ */
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

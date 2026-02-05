@@ -1,0 +1,32 @@
+<svg
+  width="520"
+  height="120"
+  viewBox="0 0 520 120"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="FruitWala.in logo"
+>
+  <defs>
+    <linearGradient id="fruitGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2E7D32"/>
+      <stop offset="100%" stop-color="#7ED957"/>
+    </linearGradient>
+
+    <linearGradient id="walaGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF9800"/>
+      <stop offset="100%" stop-color="#E53935"/>
+    </linearGradient>
+  </defs>
+
+  <text
+    x="10"
+    y="78"
+    font-family="Poppins, Segoe UI, Arial, sans-serif"
+    font-size="72"
+    font-weight="700"
+  >
+    <tspan fill="url(#fruitGradient)">Fruit</tspan>
+    <!-- Pull Wala.in left by 8px -->
+    <tspan dx="-8" fill="url(#walaGradient)">Wala.in</tspan>
+  </text>
+</svg>

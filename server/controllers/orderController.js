@@ -116,11 +116,11 @@ export const updateOrderStatus = async (req, res) => {
       return res.json({ success: false, message: "Order not found" });
     }
 
-    // 🔒 HARD LOCK AFTER DELIVERED
-    if (order.status === "Delivered") {
+    // 🔒 FINAL LOCK (NO CHANGES AFTER DELIVERED OR CANCELLED)
+    if (order.status === "Delivered" || order.status === "Cancelled") {
       return res.json({
         success: false,
-        message: "Delivered order cannot be updated",
+        message: `Order already ${order.status} and cannot be updated`,
       });
     }
 
@@ -133,7 +133,7 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // ✅ ALLOWED STATUSES ONLY
-    if (!["Order Placed", "Delivered"].includes(status)) {
+    if (!["Order Placed", "Delivered", "Cancelled"].includes(status)) {
       return res.json({
         success: false,
         message: "Invalid order status",

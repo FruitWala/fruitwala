@@ -6,8 +6,8 @@ import toast from "react-hot-toast";
 /* Input Field Component */
 const InputField = ({ type, placeholder, name, handleChange, address }) => (
   <input
-    className="w-full px-2 py-2.5 border border-gray-500/30 rounded outline-none 
-    text-gray-500 focus:border-primary transition"
+    className="w-full px-3 py-2.5 border border-gray-300 rounded-md outline-none 
+    text-gray-600 focus:border-primary transition"
     type={type}
     placeholder={placeholder}
     onChange={handleChange}
@@ -18,8 +18,7 @@ const InputField = ({ type, placeholder, name, handleChange, address }) => (
 );
 
 const AddAddress = () => {
-
-  const {axios, user, navigate} = useAppContext();
+  const { axios, user, navigate } = useAppContext();
 
   const [address, setAddress] = useState({
     firstName: "",
@@ -35,53 +34,47 @@ const AddAddress = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    setAddress((prevAddress) => ({
-      ...prevAddress,
-      [name]: value,
-    }));
+    setAddress((prev) => ({ ...prev, [name]: value }));
   };
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
-      const {data} = await axios.post(
-        '/api/address/add', 
+      const { data } = await axios.post(
+        "/api/address/add",
         { address },
         { withCredentials: true }
-        );
+      );
 
-      if(data.success){
-        toast.success(data.message)
-        navigate('/cart')
-      }else{
-        toast.error(data.message)
+      if (data.success) {
+        toast.success(data.message);
+        navigate("/cart");
+      } else {
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
   };
 
-useEffect(() => {
-  if (user === null) return; // wait
-  if (!user) navigate('/cart');
-}, [user]);
+  useEffect(() => {
+    if (user === null) return;
+    if (!user) navigate("/cart");
+  }, [user]);
 
   return (
-    <div className="mt-16 pb-16">
-      <p className="text-2xl md:text-3xl text-gray-500">
+    <div className="mt-12 px-4 sm:px-6 md:px-10 lg:px-20 pb-16">
+      <h1 className="text-2xl sm:text-3xl font-medium text-gray-700">
         Add Shipping{" "}
-        <span className="font-semibold text-primary">Address</span>
-      </p>
+        <span className="text-primary font-semibold">Address</span>
+      </h1>
 
-      <div className="flex flex-col-reverse md:flex-row justify-between mt-10">
+      <div className="flex flex-col lg:flex-row gap-12 mt-10 items-center">
         {/* FORM */}
-        <div className="flex-1 max-w-md">
-          <form
-            onSubmit={onSubmitHandler}
-            className="space-y-3 mt-6 text-sm"
-          >
-            <div className="grid grid-cols-2 gap-4">
+        <div className="w-full max-w-lg">
+          <form onSubmit={onSubmitHandler} className="space-y-4 text-sm">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField
                 handleChange={handleChange}
                 address={address}
@@ -111,10 +104,10 @@ useEffect(() => {
               address={address}
               name="street"
               type="text"
-              placeholder="Street"
+              placeholder="Street Address"
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField
                 handleChange={handleChange}
                 address={address}
@@ -131,7 +124,7 @@ useEffect(() => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField
                 handleChange={handleChange}
                 address={address}
@@ -158,8 +151,8 @@ useEffect(() => {
 
             <button
               type="submit"
-              className="w-full mt-6 bg-primary text-white py-3
-              hover:bg-primary-dull transition cursor-pointer uppercase"
+              className="w-full mt-6 bg-primary text-white py-3 rounded-md
+              hover:bg-primary-dull transition font-medium uppercase"
             >
               Save Address
             </button>
@@ -167,11 +160,13 @@ useEffect(() => {
         </div>
 
         {/* IMAGE */}
-        <img
-          className="md:mr-16 mb-16 md:mt-0"
-          src={assets.add_address_iamge}
-          alt="Add Address"
-        />
+        <div className="w-full max-w-md hidden md:block">
+          <img
+            src={assets.add_address_image}
+            alt="Add Address"
+            className="w-full object-contain"
+          />
+        </div>
       </div>
     </div>
   );

@@ -11,19 +11,22 @@ const Login = () => {
   const [password, setPassword] = React.useState("");
 
   const onSubmitHandler = async (event) => {
+    event.preventDefault();
     try {
-        event.preventDefault();
-        const { data } = await axios.post(`/api/user/${state}`, {
-        name, email, password});
+      const { data } = await axios.post(`/api/user/${state}`, {
+        name,
+        email,
+        password,
+      });
 
-    if (data.success) {
+      if (data.success) {
         toast.success("Welcome!");
         setUser(data.user);
         setShowUserLogin(false);
         navigate("/");
-    } else {
+      } else {
         toast.error(data.message);
-    }
+      }
     } catch (error) {
       toast.error(error.message);
     }
@@ -32,26 +35,30 @@ const Login = () => {
   return (
     <div
       onClick={() => setShowUserLogin(false)}
-      className="fixed inset-0 z-30 flex items-center text-sm text-primary bg-black/50"
+      className="fixed inset-0 z-40 flex items-center justify-center 
+      bg-black/50 px-4"
     >
       <form
         onSubmit={onSubmitHandler}
         onClick={(e) => e.stopPropagation()}
-        className="flex flex-col gap-4 m-auto items-start p-8 py-12 w-80 sm:w-[500px] rounded-lg shadow-xl border border-primary bg-white"
+        className="w-full max-w-sm sm:max-w-md bg-white rounded-xl shadow-xl 
+        border border-primary p-6 sm:p-8 flex flex-col gap-4"
       >
-        <h1 className="text-primary text-3xl mt-4 font-medium">
+        <h1 className="text-primary text-2xl sm:text-3xl font-medium">
           {state === "login" ? "User Login" : "User Sign Up"}
         </h1>
-        <p className="text-primary text-sm">
+
+        <p className="text-gray-500 text-sm">
           Please sign in to continue
         </p>
 
-        {/* Name (only for register) */}
+        {/* Name (Register only) */}
         {state === "register" && (
           <input
             type="text"
-            placeholder="Name"
-            className="w-full border px-4 py-2 rounded-full"
+            placeholder="Full Name"
+            className="w-full border px-4 py-2.5 rounded-md focus:outline-none 
+            focus:border-primary"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -61,8 +68,9 @@ const Login = () => {
         {/* Email */}
         <input
           type="email"
-          placeholder="Email"
-          className="w-full border px-4 py-2 rounded-full"
+          placeholder="Email Address"
+          className="w-full border px-4 py-2.5 rounded-md focus:outline-none 
+          focus:border-primary"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -72,7 +80,8 @@ const Login = () => {
         <input
           type="password"
           placeholder="Password"
-          className="w-full border px-4 py-2 rounded-full"
+          className="w-full border px-4 py-2.5 rounded-md focus:outline-none 
+          focus:border-primary"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -80,7 +89,8 @@ const Login = () => {
 
         <button
           type="submit"
-          className="mt-4 w-full h-11 rounded-full text-white bg-primary hover:bg-primary-dull transition"
+          className="mt-2 w-full h-11 rounded-md text-white 
+          bg-primary hover:bg-primary-dull transition font-medium"
         >
           {state === "login" ? "Login" : "Sign Up"}
         </button>
@@ -91,11 +101,11 @@ const Login = () => {
               prev === "login" ? "register" : "login"
             )
           }
-          className="text-primary text-sm cursor-pointer mt-3"
+          className="text-primary text-sm text-center cursor-pointer mt-2"
         >
           {state === "login"
-            ? "Don't have an account? Click here"
-            : "Already have an account? Click here"}
+            ? "Don't have an account? Sign up"
+            : "Already have an account? Login"}
         </p>
       </form>
     </div>

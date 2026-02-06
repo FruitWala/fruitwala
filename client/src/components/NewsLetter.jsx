@@ -1,29 +1,63 @@
 const NewsLetter = () => {
   return (
-    <div className="flex flex-col items-center justify-center text-center space-y-2 mt-10 pb-6">
-      <h1 className="md:text-4xl text-2xl font-semibold">
-        Never Miss a Deal!
-      </h1>
+    <section className="mt-12 sm:mt-16 pb-10 px-4">
+      <div className="max-w-3xl mx-auto flex flex-col items-center text-center space-y-4">
+        
+        {/* Heading */}
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold">
+          Never Miss a Deal!
+        </h2>
 
-      <p className="md:text-lg text-gray-500/70 pb-4">
-        Subscribe to get the latest offers, new arrivals, and exclusive discounts
-      </p>
+        {/* Description */}
+        <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-xl">
+          Subscribe to get the latest offers, new arrivals, and exclusive discounts
+        </p>
 
-      <form className="flex items-center justify-between max-w-2xl w-full md:h-13 h-12">
-        <input
-          className="border border-gray-300 rounded-md h-full border-r-0 outline-none w-full rounded-r-none px-3 text-gray-500"
-          type="text"
-          placeholder="Enter your email id"
-          required
-        />
-        <button
-          type="submit"
-          className="md:px-12 px-8 h-full text-white bg-primary hover:bg-primary-dull transition-all cursor-pointer rounded-md rounded-l-none"
+        {/* Form */}
+        <form
+          className="
+            flex flex-col sm:flex-row
+            items-stretch sm:items-center
+            w-full max-w-2xl
+            mt-4
+          "
         >
-          Subscribe
-        </button>
-      </form>
-    </div>
+          <input
+            className="
+              border border-gray-300
+              px-4 py-3
+              text-sm sm:text-base
+              outline-none
+              text-gray-700
+              rounded-md sm:rounded-r-none
+              w-full
+            "
+            type="email"
+            placeholder="Enter your email id"
+            required
+          />
+
+          <button
+            type="submit"
+            className="
+              mt-3 sm:mt-0
+              sm:ml-0
+              px-6 sm:px-10
+              py-3
+              bg-primary
+              hover:bg-primary-dull
+              transition
+              text-white
+              text-sm sm:text-base
+              rounded-md sm:rounded-l-none
+              whitespace-nowrap
+            "
+          >
+            Subscribe
+          </button>
+        </form>
+      </div>
+    </section>
   );
 };
 

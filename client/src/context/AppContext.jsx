@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState } from "react"; 
-import { useNavigate } from "react-router-dom"; 
-import toast from "react-hot-toast"; 
+import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import axios from "axios";
 
 /* ===============================
@@ -81,7 +81,6 @@ export const AppContextProvider = ({ children }) => {
   ================================ */
   const addToCart = (itemId) => {
     const updatedCart = structuredClone(cartItems);
-
     updatedCart[itemId] = (updatedCart[itemId] || 0) + 1;
     setCartItems(updatedCart);
     toast.success("Added to Cart");
@@ -119,7 +118,6 @@ export const AppContextProvider = ({ children }) => {
     for (const itemId in cartItems) {
       const product = products.find((p) => p._id === itemId);
       if (!product) continue;
-
       total += product.offerPrice * cartItems[itemId];
     }
 
@@ -141,7 +139,7 @@ export const AppContextProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
 
-    if (!user) return; // ✅ prevents auth errors
+    if (!user) return;
 
     const syncCart = async () => {
       try {
@@ -154,6 +152,17 @@ export const AppContextProvider = ({ children }) => {
 
     syncCart();
   }, [cartItems, user]);
+
+  /* ======================================================
+     ✅ NEW LOGIC — CLEAR CART WHEN USER LOGS OUT
+     (ONLY ADDITION, DOES NOT AFFECT ANY OTHER CODE)
+  ====================================================== */
+  useEffect(() => {
+    if (!user) {
+      setCartItems({});
+      localStorage.removeItem("cartItems");
+    }
+  }, [user]);
 
   /* ===============================
      Context Value

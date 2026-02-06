@@ -27,7 +27,9 @@ await connectCloudinary();
 ================================ */
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://fruitwala-two.vercel.app"
+  "https://fruitwala-two.vercel.app",
+  "https://fruitwala.in",
+  "https://www.fruitwala.in"
 ];
 
 app.use(

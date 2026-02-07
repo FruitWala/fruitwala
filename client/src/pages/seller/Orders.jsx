@@ -11,12 +11,16 @@ const Orders = () => {
     try {
       const { data } = await axios.get("/api/order/seller");
       if (data.success) {
-        setOrders(data.orders);
+        setOrders(data.orders || []);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      if (error.response?.status === 401) {
+        toast.error("Session expired. Please login again.");
+      } else {
+        toast.error(error.message);
+      }
     }
   };
 
@@ -59,6 +63,13 @@ const Orders = () => {
       <div className="p-4 md:p-10 space-y-6">
         <h2 className="text-lg font-medium">Orders List</h2>
 
+        {/* EMPTY STATE */}
+        {orders.length === 0 && (
+          <div className="text-gray-500 text-center py-10">
+            No orders found
+          </div>
+        )}
+
         {orders.map((order) => (
           <div
             key={order._id}
@@ -72,9 +83,9 @@ const Orders = () => {
                 className="w-10 h-10 shrink-0"
               />
               <div>
-                {order.items.map((item, idx) => (
+                {order.items?.map((item, idx) => (
                   <p key={idx} className="font-medium text-sm">
-                    {item.product.name}
+                    {item.product?.name}
                     <span className="text-primary"> × {item.quantity}</span>
                   </p>
                 ))}
@@ -87,13 +98,15 @@ const Orders = () => {
               {/* ADDRESS */}
               <div>
                 <p className="font-medium text-gray-900">Delivery Address</p>
-                <p>{order.address.firstName} {order.address.lastName}</p>
-                <p>{order.address.street}</p>
                 <p>
-                  {order.address.city}, {order.address.state},{" "}
-                  {order.address.country}
+                  {order.address?.firstName} {order.address?.lastName}
                 </p>
-                <p>{order.address.phone}</p>
+                <p>{order.address?.street}</p>
+                <p>
+                  {order.address?.city}, {order.address?.state},{" "}
+                  {order.address?.country}
+                </p>
+                <p>{order.address?.phone}</p>
               </div>
 
               {/* ORDER INFO */}
@@ -124,7 +137,6 @@ const Orders = () => {
               <div>
                 <p className="font-medium">Order Status</p>
 
-                {/* 🔒 FINAL STATES */}
                 {order.status === "Delivered" && (
                   <span className="text-green-600 font-medium">
                     Delivered
@@ -133,11 +145,12 @@ const Orders = () => {
 
                 {order.status === "Cancelled" && (
                   <span className="text-red-600 font-medium">
-                    Cancelled
+                    {order.cancelledBy === "USER"
+                      ? "Customer Cancelled"
+                      : "Cancelled"}
                   </span>
                 )}
 
-                {/* 🔁 UPDATABLE */}
                 {order.status !== "Delivered" &&
                   order.status !== "Cancelled" && (
                     <select
@@ -153,7 +166,6 @@ const Orders = () => {
                     </select>
                   )}
 
-                {/* COD PAYMENT */}
                 {order.paymentType === "COD" &&
                   !order.isPaid &&
                   order.status !== "Cancelled" && (

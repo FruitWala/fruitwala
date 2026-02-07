@@ -40,7 +40,6 @@ export const placeOrderCOD = async (req, res) => {
       return res.json({ success: false, message: "Invalid order items" });
     }
 
-    // ✅ MINIMUM ORDER VALIDATION (BACKEND AUTHORITY)
     if (amount < MIN_ORDER_VALUE) {
       return res.json({
         success: false,
@@ -59,7 +58,6 @@ export const placeOrderCOD = async (req, res) => {
     });
 
     res.json({ success: true, message: "Order Placed Successfully" });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -81,7 +79,6 @@ export const getUserOrders = async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json({ success: true, orders });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -97,7 +94,6 @@ export const getAllOrders = async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json({ success: true, orders });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -131,7 +127,6 @@ export const markCODPaymentReceived = async (req, res) => {
     await order.save();
 
     res.json({ success: true, message: "Payment marked as received" });
-
   } catch (error) {
     res.json({ success: false, message: error.message });
   }
@@ -153,7 +148,6 @@ export const updateOrderStatus = async (req, res) => {
       return res.json({ success: false, message: "Order not found" });
     }
 
-    // 🔒 FINAL STATE LOCK
     if (order.status === "Delivered" || order.status === "Cancelled") {
       return res.json({
         success: false,
@@ -161,7 +155,6 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // ❌ BLOCK SHIPPED COMPLETELY
     if (status === "Shipped") {
       return res.json({
         success: false,
@@ -169,7 +162,6 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // ✅ ALLOWED STATUS ONLY
     const allowedStatuses = ["Order Placed", "Delivered", "Cancelled"];
     if (!allowedStatuses.includes(status)) {
       return res.json({
@@ -180,7 +172,11 @@ export const updateOrderStatus = async (req, res) => {
 
     order.status = status;
 
-    // ✅ AUTO MARK COD PAID ON DELIVERY
+    // ✅ TAG SELLER CANCELLATION
+    if (status === "Cancelled") {
+      order.cancelledBy = "SELLER";
+    }
+
     if (status === "Delivered" && order.paymentType === "COD") {
       order.isPaid = true;
     }
@@ -188,7 +184,54 @@ export const updateOrderStatus = async (req, res) => {
     await order.save();
 
     res.json({ success: true, message: "Order status updated" });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
+};
 
+/* ==============================
+   USER CANCEL ORDER
+================================ */
+export const cancelOrderByUser = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { orderId } = req.params;
+
+    if (!userId) {
+      return res.json({ success: false, message: "User not authenticated" });
+    }
+
+    if (!orderId) {
+      return res.json({ success: false, message: "Order ID required" });
+    }
+
+    const order = await Order.findOne({ _id: orderId, userId });
+    if (!order) {
+      return res.json({ success: false, message: "Order not found" });
+    }
+
+    if (order.status === "Delivered") {
+      return res.json({
+        success: false,
+        message: "Delivered order cannot be cancelled",
+      });
+    }
+
+    if (order.status === "Cancelled") {
+      return res.json({
+        success: false,
+        message: "Order already cancelled",
+      });
+    }
+
+    order.status = "Cancelled";
+    order.cancelledBy = "USER"; // ✅ TAG USER CANCELLATION
+    await order.save();
+
+    res.json({
+      success: true,
+      message: "Order cancelled successfully",
+    });
   } catch (error) {
     res.json({ success: false, message: error.message });
   }

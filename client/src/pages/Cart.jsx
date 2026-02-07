@@ -26,22 +26,29 @@ const Cart = () => {
 
   /* ---------------- MIN ORDER CONFIG ---------------- */
   const MIN_ORDER_VALUE = 300;
-  const cartTotal = getCartAmount();
+
+  const rawCartTotal = getCartAmount();
+  const cartTotal = Math.max(rawCartTotal, 0);
   const isMinOrderValid = cartTotal >= MIN_ORDER_VALUE;
 
-  /* ---------------- CART BUILD ---------------- */
+  /* ---------------- BUILD CART ARRAY ---------------- */
   const getCart = () => {
     const temp = [];
+
     for (const key in cartItems) {
       const product = products.find((p) => p._id === key);
       if (product) {
-        temp.push({ ...product, quantity: cartItems[key] });
+        temp.push({
+          ...product,
+          quantity: Number(cartItems[key]),
+        });
       }
     }
+
     setCartArray(temp);
   };
 
-  /* ---------------- ADDRESS ---------------- */
+  /* ---------------- FETCH ADDRESSES ---------------- */
   const getUserAddress = async () => {
     try {
       const { data } = await axios.get("/api/address/get");
@@ -74,7 +81,7 @@ const Cart = () => {
       }
 
       if (!selectedAddress) {
-        toast.error("Please select an address");
+        toast.error("Please select a delivery address");
         return;
       }
 
@@ -117,7 +124,7 @@ const Cart = () => {
   return (
     <div className="mt-12 px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24">
       <div className="flex flex-col lg:flex-row gap-12">
-        
+
         {/* LEFT : CART ITEMS */}
         <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-medium mb-6">
@@ -154,10 +161,9 @@ const Cart = () => {
                     <p className="font-medium text-gray-800">
                       {product.name}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Weight: {product.weight || "500gm"}
-                    </p>
+                    <p className="text-sm text-gray-500">Weight based</p>
 
+                    {/* QTY */}
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-sm">Qty</span>
                       <select
@@ -170,9 +176,14 @@ const Cart = () => {
                         }
                         className="border px-2 py-1 text-sm"
                       >
-                        {Array.from({ length: 30 }, (_, i) => (
-                          <option key={i} value={i + 1}>
-                            {i + 1}
+                        {Array.from({ length: 9 }, (_, i) => (
+                          <option key={i} value={(i + 1) / 10}>
+                            {(i + 1) / 10} kg
+                          </option>
+                        ))}
+                        {Array.from({ length: 10 }, (_, i) => (
+                          <option key={i + 10} value={i + 1}>
+                            {i + 1} kg
                           </option>
                         ))}
                       </select>
@@ -182,7 +193,7 @@ const Cart = () => {
 
                 <p className="text-primary font-medium text-lg">
                   {currency}
-                  {product.offerPrice * product.quantity}
+                  {(product.offerPrice * product.quantity).toFixed(2)}
                 </p>
 
                 <button
@@ -217,8 +228,9 @@ const Cart = () => {
           <h2 className="text-xl font-medium">Order Summary</h2>
           <hr className="my-4" />
 
-          {/* Address */}
+          {/* DELIVERY ADDRESS */}
           <p className="text-sm font-medium uppercase">Delivery Address</p>
+
           <div className="relative mt-2">
             <p className="text-sm text-gray-600">
               {selectedAddress
@@ -234,7 +246,7 @@ const Cart = () => {
             </button>
 
             {showAddress && (
-              <div className="absolute z-10 bg-white border w-full mt-2">
+              <div className="absolute z-10 bg-white border w-full mt-2 rounded shadow">
                 {addresses.map((address) => (
                   <p
                     key={address._id}
@@ -244,9 +256,10 @@ const Cart = () => {
                     }}
                     className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
                   >
-                    {address.street}, {address.city}
+                    {address.street}, {address.city}, {address.state}
                   </p>
                 ))}
+
                 <p
                   onClick={() => navigate("/add-address")}
                   className="text-primary text-center p-2 hover:bg-primary/10 cursor-pointer"
@@ -257,6 +270,7 @@ const Cart = () => {
             )}
           </div>
 
+          {/* PAYMENT */}
           <p className="text-sm font-medium uppercase mt-6">
             Payment Method
           </p>
@@ -270,12 +284,13 @@ const Cart = () => {
 
           <hr className="my-4" />
 
+          {/* TOTALS */}
           <div className="space-y-2 text-sm text-gray-600">
             <p className="flex justify-between">
               <span>Price</span>
               <span>
                 {currency}
-                {cartTotal}
+                {cartTotal.toFixed(2)}
               </span>
             </p>
             <p className="flex justify-between">
@@ -286,31 +301,28 @@ const Cart = () => {
               <span>Total</span>
               <span>
                 {currency}
-                {cartTotal}
+                {cartTotal.toFixed(2)}
               </span>
             </p>
           </div>
 
-          {!isMinOrderValid && (
+          {!isMinOrderValid && cartTotal > 0 && (
             <p className="text-red-600 text-sm mt-3">
               Minimum order value is ₹{MIN_ORDER_VALUE}. Add ₹
-              {MIN_ORDER_VALUE - cartTotal} more to proceed.
+              {Math.max(MIN_ORDER_VALUE - cartTotal, 0)} more to proceed.
             </p>
           )}
 
           <button
             onClick={placeOrder}
             disabled={!isMinOrderValid}
-            className={`w-full py-3 mt-6 rounded transition
-              ${
-                isMinOrderValid
-                  ? "bg-primary text-white hover:bg-primary-dull"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
+            className={`w-full py-3 mt-6 rounded transition ${
+              isMinOrderValid
+                ? "bg-primary text-white hover:bg-primary-dull"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
-            {paymentOption === "COD"
-              ? "Place Order"
-              : "Proceed to Checkout"}
+            Place Order
           </button>
         </div>
       </div>

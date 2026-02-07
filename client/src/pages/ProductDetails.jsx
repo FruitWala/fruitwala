@@ -16,7 +16,9 @@ const ProductDetails = () => {
   useEffect(() => {
     if (products.length && product) {
       const sameCategory = products.filter(
-        (item) => item.category === product.category && item._id !== product._id
+        (item) =>
+          item.category === product.category &&
+          item._id !== product._id
       );
       setRelatedProducts(sameCategory.slice(0, 5));
     }
@@ -32,7 +34,6 @@ const ProductDetails = () => {
 
   return (
     <div className="mt-8 sm:mt-12 px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24">
-      
       {/* Breadcrumb */}
       <p className="text-sm text-gray-500 mb-4 flex flex-wrap gap-1">
         <Link to="/">Home</Link> /
@@ -48,7 +49,6 @@ const ProductDetails = () => {
 
       {/* Product Section */}
       <div className="flex flex-col lg:flex-row gap-8 lg:gap-16">
-        
         {/* Images */}
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Thumbnails */}
@@ -58,7 +58,11 @@ const ProductDetails = () => {
                 key={index}
                 onClick={() => setThumbnail(image)}
                 className={`border rounded overflow-hidden w-16 h-16 sm:w-20 sm:h-20
-                ${thumbnail === image ? "border-primary" : "border-gray-300"}`}
+                ${
+                  thumbnail === image
+                    ? "border-primary"
+                    : "border-gray-300"
+                }`}
               >
                 <img
                   src={image}
@@ -92,7 +96,11 @@ const ProductDetails = () => {
               .map((_, i) => (
                 <img
                   key={i}
-                  src={i < 4 ? assets.star_icon : assets.star_dull_icon}
+                  src={
+                    i < 4
+                      ? assets.star_icon
+                      : assets.star_dull_icon
+                  }
                   className="w-4"
                   alt=""
                 />
@@ -100,23 +108,31 @@ const ProductDetails = () => {
             <p className="text-sm ml-2">(4)</p>
           </div>
 
-          {/* Price */}
+          {/* Price (WITH UNIT) */}
           <div className="mt-5">
             <p className="text-gray-500 line-through">
               {currency}
               {product.price}
+              <span className="ml-1">/ kg</span>
             </p>
+
             <p className="text-2xl font-semibold text-primary">
               {currency}
               {product.offerPrice}
+              <span className="text-sm text-gray-500 ml-1">
+                / kg
+              </span>
             </p>
+
             <span className="text-sm text-gray-500">
               (inclusive of all taxes)
             </span>
           </div>
 
           {/* Description */}
-          <p className="text-base font-medium mt-6">About Product</p>
+          <p className="text-base font-medium mt-6">
+            About Product
+          </p>
           <ul className="list-disc ml-5 text-gray-600 text-sm space-y-1">
             {product.description.map((desc, index) => (
               <li key={index}>{desc}</li>
@@ -127,7 +143,8 @@ const ProductDetails = () => {
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <button
               onClick={() => addToCart(product._id)}
-              className="w-full py-3 font-medium bg-gray-100 hover:bg-gray-200 transition"
+              className="w-full py-3 font-medium bg-gray-100
+              hover:bg-gray-200 transition"
             >
               Add to Cart
             </button>
@@ -137,7 +154,8 @@ const ProductDetails = () => {
                 addToCart(product._id);
                 navigate("/cart");
               }}
-              className="w-full py-3 font-medium bg-primary text-white hover:bg-primary-dull transition"
+              className="w-full py-3 font-medium bg-primary
+              text-white hover:bg-primary-dull transition"
             >
               Buy Now
             </button>
@@ -148,7 +166,9 @@ const ProductDetails = () => {
       {/* Related Products */}
       <div className="mt-16">
         <div className="text-center">
-          <p className="text-2xl font-medium">Related Products</p>
+          <p className="text-2xl font-medium">
+            Related Products
+          </p>
           <div className="w-20 h-0.5 bg-primary mx-auto mt-2"></div>
         </div>
 

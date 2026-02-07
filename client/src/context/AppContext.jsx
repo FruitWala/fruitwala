@@ -23,6 +23,7 @@ export const AppContextProvider = ({ children }) => {
   const [showUserLogin, setShowUserLogin] = useState(false);
   const [products, setProducts] = useState([]);
 
+  // cartItems = { productId: quantityInKg }
   const [cartItems, setCartItems] = useState(() => {
     const storedCart = localStorage.getItem("cartItems");
     return storedCart ? JSON.parse(storedCart) : {};
@@ -48,7 +49,6 @@ export const AppContextProvider = ({ children }) => {
   const fetchUser = async () => {
     try {
       const { data } = await axios.get("/api/user/is-auth");
-
       if (data.success) {
         setUser(data.user);
         setCartItems(data.user.cartItems || {});
@@ -77,30 +77,47 @@ export const AppContextProvider = ({ children }) => {
   };
 
   /* ===============================
-     Cart Actions
+     Cart Actions (LOGIN + WEIGHT SAFE)
   ================================ */
+
+  // Default add = 0.1 kg
   const addToCart = (itemId) => {
+    // 🔒 LOGIN GUARD (SINGLE SOURCE OF TRUTH)
+    if (!user) {
+      toast.error("Please login to add products to cart");
+      setShowUserLogin(true);
+      return;
+    }
+
     const updatedCart = structuredClone(cartItems);
-    updatedCart[itemId] = (updatedCart[itemId] || 0) + 1;
+
+    if (!updatedCart[itemId]) {
+      updatedCart[itemId] = 0.1;
+    } else {
+      updatedCart[itemId] = Number(
+        (updatedCart[itemId] + 0.1).toFixed(2)
+      );
+    }
+
     setCartItems(updatedCart);
     toast.success("Added to Cart");
   };
 
   const updateCartItem = (itemId, quantity) => {
     const updatedCart = structuredClone(cartItems);
-    updatedCart[itemId] = quantity;
+
+    if (quantity <= 0) {
+      delete updatedCart[itemId];
+    } else {
+      updatedCart[itemId] = Number(quantity);
+    }
+
     setCartItems(updatedCart);
-    toast.success("Cart Updated");
   };
 
   const removeFromCart = (itemId) => {
     const updatedCart = structuredClone(cartItems);
-
-    if (updatedCart[itemId]) {
-      updatedCart[itemId] -= 1;
-      if (updatedCart[itemId] === 0) delete updatedCart[itemId];
-    }
-
+    delete updatedCart[itemId];
     setCartItems(updatedCart);
     toast.success("Removed from Cart");
   };
@@ -108,20 +125,29 @@ export const AppContextProvider = ({ children }) => {
   /* ===============================
      Cart Helpers
   ================================ */
+
+  // Number of unique products
   const getCartCount = () => {
-    return Object.values(cartItems).reduce((sum, qty) => sum + qty, 0);
+    return Object.keys(cartItems).length;
   };
 
+  // Total price = pricePerKg × quantityInKg
   const getCartAmount = () => {
     let total = 0;
 
     for (const itemId in cartItems) {
       const product = products.find((p) => p._id === itemId);
       if (!product) continue;
-      total += product.offerPrice * cartItems[itemId];
+
+      const quantity = Number(cartItems[itemId]);
+      const price = Number(product.offerPrice);
+
+      if (quantity > 0 && price > 0) {
+        total += price * quantity;
+      }
     }
 
-    return Math.floor(total * 100) / 100;
+    return Number(total.toFixed(2));
   };
 
   /* ===============================
@@ -153,10 +179,9 @@ export const AppContextProvider = ({ children }) => {
     syncCart();
   }, [cartItems, user]);
 
-  /* ======================================================
-     ✅ NEW LOGIC — CLEAR CART WHEN USER LOGS OUT
-     (ONLY ADDITION, DOES NOT AFFECT ANY OTHER CODE)
-  ====================================================== */
+  /* ===============================
+     Clear Cart on Logout
+  ================================ */
   useEffect(() => {
     if (!user) {
       setCartItems({});

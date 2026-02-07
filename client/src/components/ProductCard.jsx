@@ -83,14 +83,24 @@ const ProductCard = ({ product }) => {
 
         {/* Price + Cart */}
         <div className="flex items-center justify-between mt-3">
-          <p className="text-base sm:text-lg font-semibold text-primary">
-            {currency}
-            {product.offerPrice}
-            <span className="text-xs sm:text-sm text-gray-400 line-through ml-1">
+          {/* PRICE (CORRECT ORDER) */}
+          <div className="flex flex-col leading-tight">
+            {/* Original Price */}
+            <span className="text-xs sm:text-sm text-gray-400 line-through">
               {currency}
               {product.price}
+              <span className="ml-1">/ kg</span>
             </span>
-          </p>
+
+            {/* Offer Price */}
+            <span className="text-base sm:text-lg font-semibold text-primary">
+              {currency}
+              {product.offerPrice}
+              <span className="ml-1 text-xs sm:text-sm text-gray-500">
+                / kg
+              </span>
+            </span>
+          </div>
 
           {/* Cart Actions */}
           <div

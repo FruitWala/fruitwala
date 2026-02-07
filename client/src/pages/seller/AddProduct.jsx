@@ -1,28 +1,67 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { assets, categories } from "../../assets/assets";
 import { useAppContext } from "../../context/AppContext";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const AddProduct = () => {
+  const { axios, fetchProducts } = useAppContext();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const productId = searchParams.get("id");
+
+  const isEditMode = Boolean(productId);
+
   const [files, setFiles] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
 
-  const { axios } = useAppContext();
+  /* ================= FETCH PRODUCT (EDIT MODE) ================= */
+  useEffect(() => {
+    if (!isEditMode) return;
 
+    const fetchProduct = async () => {
+      try {
+        const { data } = await axios.get(`/api/product/${productId}`);
+        if (!data.success) {
+          toast.error(data.message);
+          return;
+        }
+
+        const product = data.product;
+
+        setName(product.name || "");
+        setDescription(product.description?.join("\n") || "");
+        setCategory(product.category || "");
+        setPrice(product.price ?? "");
+        setOfferPrice(product.offerPrice ?? "");
+        setExistingImages(product.image || []);
+      } catch (error) {
+        toast.error(error.message);
+      }
+    };
+
+    fetchProduct();
+  }, [productId, isEditMode, axios]);
+
+  /* ================= SUBMIT HANDLER ================= */
   const onSubmitHandler = async (e) => {
-    try {
-      e.preventDefault();
+    e.preventDefault();
 
+    try {
       const productData = {
-        name,
-        description: description.split("\n"),
+        name: name.trim(),
+        description: description
+          .split("\n")
+          .map((d) => d.trim())
+          .filter(Boolean),
         category,
-        price,
-        offerPrice,
+        price: Number(price),
+        offerPrice: Number(offerPrice),
       };
 
       const formData = new FormData();
@@ -32,18 +71,31 @@ const AddProduct = () => {
         if (file) formData.append("images", file);
       });
 
-      const { data } = await axios.post("/api/product/add", formData);
+      const url = isEditMode
+        ? `/api/product/update/${productId}`
+        : "/api/product/add";
 
-      if (data.success) {
-        toast.success(data.message);
+      const { data } = await axios.post(url, formData);
+
+      if (!data.success) {
+        toast.error(data.message);
+        return;
+      }
+
+      toast.success(data.message);
+      fetchProducts();
+
+      if (!isEditMode) {
         setName("");
         setDescription("");
         setCategory("");
         setPrice("");
         setOfferPrice("");
         setFiles([]);
+        setExistingImages([]);
       } else {
-        toast.error(data.message);
+        setFiles([]);
+        navigate("/seller/product-list"); // ✅ ONLY LINE ADDED
       }
     } catch (error) {
       toast.error(error.message);
@@ -56,35 +108,35 @@ const AddProduct = () => {
         onSubmit={onSubmitHandler}
         className="max-w-2xl mx-auto p-4 md:p-10 space-y-6"
       >
-        <h2 className="text-lg font-medium">Add New Product</h2>
+        <h2 className="text-lg font-medium">
+          {isEditMode ? "Edit Product" : "Add New Product"}
+        </h2>
 
         {/* IMAGES */}
         <div>
           <p className="text-sm font-medium mb-2">Product Images</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Array(4)
-              .fill("")
+              .fill(null)
               .map((_, index) => (
                 <label
                   key={index}
-                  htmlFor={`image${index}`}
                   className="cursor-pointer border rounded flex items-center justify-center bg-gray-50"
                 >
                   <input
-                    id={`image${index}`}
                     type="file"
                     hidden
                     onChange={(e) => {
-                      const updatedFiles = [...files];
-                      updatedFiles[index] = e.target.files[0];
-                      setFiles(updatedFiles);
+                      const updated = [...files];
+                      updated[index] = e.target.files[0];
+                      setFiles(updated);
                     }}
                   />
                   <img
                     src={
                       files[index]
                         ? URL.createObjectURL(files[index])
-                        : assets.upload_area
+                        : existingImages[index] || assets.upload_area
                     }
                     alt="upload"
                     className="w-full h-28 object-contain p-2"
@@ -101,8 +153,7 @@ const AddProduct = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             type="text"
-            placeholder="Enter product name"
-            className="w-full mt-1 border px-3 py-2 rounded outline-none focus:border-primary"
+            className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
             required
           />
         </div>
@@ -114,8 +165,8 @@ const AddProduct = () => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
+            className="w-full mt-1 border px-3 py-2 rounded resize-none focus:border-primary"
             placeholder="One point per line"
-            className="w-full mt-1 border px-3 py-2 rounded outline-none resize-none focus:border-primary"
           />
         </div>
 
@@ -125,7 +176,8 @@ const AddProduct = () => {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full mt-1 border px-3 py-2 rounded outline-none focus:border-primary"
+            className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
+            required
           >
             <option value="">Select Category</option>
             {categories.map((item, index) => (
@@ -144,8 +196,8 @@ const AddProduct = () => {
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               type="number"
-              placeholder="0"
-              className="w-full mt-1 border px-3 py-2 rounded outline-none focus:border-primary"
+              min="0"
+              className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
               required
             />
           </div>
@@ -156,19 +208,18 @@ const AddProduct = () => {
               value={offerPrice}
               onChange={(e) => setOfferPrice(e.target.value)}
               type="number"
-              placeholder="0"
-              className="w-full mt-1 border px-3 py-2 rounded outline-none focus:border-primary"
+              min="0"
+              className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
               required
             />
           </div>
         </div>
 
-        {/* SUBMIT */}
         <button
           type="submit"
           className="w-full sm:w-auto px-10 py-2.5 bg-primary text-white rounded hover:bg-primary-dull transition"
         >
-          Add Product
+          {isEditMode ? "Update Product" : "Add Product"}
         </button>
       </form>
     </div>

@@ -32,6 +32,16 @@ const ProductDetails = () => {
 
   if (!product) return null;
 
+  // 🔥 Safe Cloudinary Optimizer
+  const optimizeImage = (url, width, height = null) => {
+    if (!url || !url.includes("/upload/")) return url;
+    const [base, path] = url.split("/upload/");
+    if (!height) {
+      return `${base}/upload/f_auto,q_auto,w_${width}/${path}`;
+    }
+    return `${base}/upload/f_auto,q_auto:eco,c_fill,w_${width},h_${height}/${path}`;
+  };
+
   return (
     <div className="mt-8 sm:mt-12 px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24">
       {/* Breadcrumb */}
@@ -65,8 +75,11 @@ const ProductDetails = () => {
                 }`}
               >
                 <img
-                  src={image}
+                  src={optimizeImage(image, 150, 150)}
                   alt="thumb"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -76,8 +89,10 @@ const ProductDetails = () => {
           {/* Main Image */}
           <div className="border rounded overflow-hidden w-full max-w-md mx-auto">
             <img
-              src={thumbnail}
+              src={thumbnail ? optimizeImage(thumbnail, 800) : ""}
               alt={product.name}
+              decoding="async"
+              fetchPriority="high"
               className="w-full h-full object-contain"
             />
           </div>
@@ -96,19 +111,16 @@ const ProductDetails = () => {
               .map((_, i) => (
                 <img
                   key={i}
-                  src={
-                    i < 4
-                      ? assets.star_icon
-                      : assets.star_dull_icon
-                  }
+                  src={i < 4 ? assets.star_icon : assets.star_dull_icon}
                   className="w-4"
                   alt=""
+                  loading="lazy"
                 />
               ))}
             <p className="text-sm ml-2">(4)</p>
           </div>
 
-          {/* Price (WITH UNIT) */}
+          {/* Price */}
           <div className="mt-5">
             <p className="text-gray-500 line-through">
               {currency}

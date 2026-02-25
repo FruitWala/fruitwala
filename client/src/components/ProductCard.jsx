@@ -16,6 +16,13 @@ const ProductCard = ({ product }) => {
 
   if (!product) return null;
 
+  // 🔥 Cloudinary Optimizer (Safe)
+  const optimizeImage = (url, width = 400, height = 400) => {
+    if (!url || !url.includes("/upload/")) return url;
+    const [base, path] = url.split("/upload/");
+    return `${base}/upload/f_auto,q_auto:eco,c_fill,w_${width},h_${height}/${path}`;
+  };
+
   const handleAdd = (e) => {
     e.stopPropagation();
 
@@ -47,8 +54,11 @@ const ProductCard = ({ product }) => {
       {/* Image */}
       <div className="flex items-center justify-center aspect-square mb-3">
         <img
-          src={product.image[0]}
+          src={optimizeImage(product.image?.[0])}
           alt={product.name}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
           className="max-h-32 sm:max-h-36 md:max-h-40 object-contain
           transition-transform hover:scale-105"
         />
@@ -72,10 +82,9 @@ const ProductCard = ({ product }) => {
               <img
                 key={i}
                 className="w-3.5"
-                src={
-                  i < 4 ? assets.star_icon : assets.star_dull_icon
-                }
+                src={i < 4 ? assets.star_icon : assets.star_dull_icon}
                 alt=""
+                loading="lazy"
               />
             ))}
           <span className="text-gray-500">(4)</span>
@@ -83,16 +92,13 @@ const ProductCard = ({ product }) => {
 
         {/* Price + Cart */}
         <div className="flex items-center justify-between mt-3">
-          {/* PRICE (CORRECT ORDER) */}
           <div className="flex flex-col leading-tight">
-            {/* Original Price */}
             <span className="text-xs sm:text-sm text-gray-400 line-through">
               {currency}
               {product.price}
               <span className="ml-1">/ kg</span>
             </span>
 
-            {/* Offer Price */}
             <span className="text-base sm:text-lg font-semibold text-primary">
               {currency}
               {product.offerPrice}
@@ -102,7 +108,6 @@ const ProductCard = ({ product }) => {
             </span>
           </div>
 
-          {/* Cart Actions */}
           <div
             onClick={(e) => e.stopPropagation()}
             className="text-primary"
@@ -119,6 +124,7 @@ const ProductCard = ({ product }) => {
                   src={assets.cart_icon}
                   alt="cart"
                   className="w-4"
+                  loading="lazy"
                 />
                 Add
               </button>

@@ -1,158 +1,237 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
 
 /* ===============================
-   Axios Global Configuration
+   AXIOS INSTANCE
 ================================ */
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_BACKEND_URL,
+  withCredentials: true,
+});
+
+/* ===============================
+   CONTEXT
+================================ */
 
 export const AppContext = createContext();
 
+/* ===============================
+   PROVIDER
+================================ */
+
 export const AppContextProvider = ({ children }) => {
+
   const navigate = useNavigate();
   const currency = import.meta.env.VITE_CURRENCY;
 
   /* ===============================
-     Global States
+     GLOBAL STATES
   ================================ */
+
   const [user, setUser] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
   const [showUserLogin, setShowUserLogin] = useState(false);
   const [products, setProducts] = useState([]);
-
-  // cartItems = { productId: quantityInKg }
-  const [cartItems, setCartItems] = useState(() => {
-    const storedCart = localStorage.getItem("cartItems");
-    return storedCart ? JSON.parse(storedCart) : {};
-  });
-
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const stored = localStorage.getItem("cartItems");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
   /* ===============================
-     Fetch Seller Auth Status
+     PRODUCT MAP (FAST LOOKUP)
   ================================ */
+
+  const productMap = useMemo(() => {
+    const map = {};
+    for (const p of products) {
+      map[p._id] = p;
+    }
+    return map;
+  }, [products]);
+
+  /* ===============================
+     FETCH SELLER
+  ================================ */
+
   const fetchSeller = async () => {
     try {
-      const { data } = await axios.get("/api/seller/is-auth");
-      setIsSeller(data.success === true);
+      const { data } = await api.get("/api/seller/is-auth");
+      setIsSeller(data.success);
     } catch {
       setIsSeller(false);
     }
   };
 
   /* ===============================
-     Fetch User Auth + Cart
+     FETCH USER
   ================================ */
+
   const fetchUser = async () => {
     try {
-      const { data } = await axios.get("/api/user/is-auth");
+
+      const { data } = await api.get("/api/user/is-auth");
+
       if (data.success) {
         setUser(data.user);
         setCartItems(data.user.cartItems || {});
       } else {
         setUser(null);
       }
+
     } catch {
       setUser(null);
     }
   };
 
   /* ===============================
-     Fetch Products
+     FETCH PRODUCTS
   ================================ */
+
   const fetchProducts = async () => {
     try {
-      const { data } = await axios.get("/api/product/list");
+
+      const { data } = await api.get("/api/product/list");
+
       if (data.success) {
         setProducts(data.products);
       } else {
         toast.error(data.message);
       }
+
     } catch (error) {
       toast.error(error.message);
     }
   };
 
   /* ===============================
-     Cart Actions (LOGIN + WEIGHT SAFE)
+     CART ACTIONS
   ================================ */
 
-  // Default add = 0.1 kg
-  const addToCart = (itemId) => {
-    // 🔒 LOGIN GUARD (SINGLE SOURCE OF TRUTH)
+  const addToCart = (productId, variant) => {
+
     if (!user) {
       toast.error("Please login to add products to cart");
       setShowUserLogin(true);
       return;
     }
 
-    const updatedCart = structuredClone(cartItems);
+    const variantKey = variant.label;
 
-    if (!updatedCart[itemId]) {
-      updatedCart[itemId] = 0.1;
-    } else {
-      updatedCart[itemId] = Number(
-        (updatedCart[itemId] + 0.1).toFixed(2)
-      );
-    }
+    setCartItems((prev) => {
 
-    setCartItems(updatedCart);
+      const updated = structuredClone(prev);
+
+      if (!updated[productId]) updated[productId] = {};
+
+      updated[productId][variantKey] =
+        (updated[productId][variantKey] || 0) + 1;
+
+      return updated;
+    });
+
     toast.success("Added to Cart");
   };
 
-  const updateCartItem = (itemId, quantity) => {
-    const updatedCart = structuredClone(cartItems);
+  const updateCartItem = (productId, variantLabel, quantity) => {
 
-    if (quantity <= 0) {
-      delete updatedCart[itemId];
-    } else {
-      updatedCart[itemId] = Number(quantity);
-    }
+    setCartItems((prev) => {
 
-    setCartItems(updatedCart);
+      const updated = structuredClone(prev);
+
+      if (!updated[productId]) return prev;
+
+      if (quantity <= 0) {
+        delete updated[productId][variantLabel];
+      } else {
+        updated[productId][variantLabel] = quantity;
+      }
+
+      if (Object.keys(updated[productId]).length === 0) {
+        delete updated[productId];
+      }
+
+      return updated;
+    });
   };
 
-  const removeFromCart = (itemId) => {
-    const updatedCart = structuredClone(cartItems);
-    delete updatedCart[itemId];
-    setCartItems(updatedCart);
+  const removeFromCart = (productId, variantLabel) => {
+
+    setCartItems((prev) => {
+
+      const updated = structuredClone(prev);
+
+      if (!updated[productId]) return prev;
+
+      delete updated[productId][variantLabel];
+
+      if (Object.keys(updated[productId]).length === 0) {
+        delete updated[productId];
+      }
+
+      return updated;
+    });
+
     toast.success("Removed from Cart");
   };
 
   /* ===============================
-     Cart Helpers
+     CART HELPERS
   ================================ */
 
-  // Number of unique products
   const getCartCount = () => {
-    return Object.keys(cartItems).length;
+
+    let count = 0;
+
+    for (const productId in cartItems) {
+      for (const variant in cartItems[productId]) {
+        count += cartItems[productId][variant];
+      }
+    }
+
+    return count;
   };
 
-  // Total price = pricePerKg × quantityInKg
   const getCartAmount = () => {
+
     let total = 0;
 
-    for (const itemId in cartItems) {
-      const product = products.find((p) => p._id === itemId);
+    for (const productId in cartItems) {
+
+      const product = productMap[productId];
       if (!product) continue;
 
-      const quantity = Number(cartItems[itemId]);
-      const price = Number(product.offerPrice);
+      for (const variantLabel in cartItems[productId]) {
 
-      if (quantity > 0 && price > 0) {
-        total += price * quantity;
+        const qty = cartItems[productId][variantLabel];
+
+        const variant = product.variants?.find(
+          v => v.label === variantLabel
+        );
+
+        if (!variant) continue;
+
+        total += variant.offerPrice * qty;
+
       }
+
     }
 
     return Number(total.toFixed(2));
   };
 
   /* ===============================
-     Initial Load
+     INITIAL LOAD
   ================================ */
+
   useEffect(() => {
     fetchUser();
     fetchSeller();
@@ -160,39 +239,52 @@ export const AppContextProvider = ({ children }) => {
   }, []);
 
   /* ===============================
-     Sync Cart to LocalStorage + DB
+     CART SYNC
   ================================ */
+
   useEffect(() => {
+
     localStorage.setItem("cartItems", JSON.stringify(cartItems));
 
     if (!user) return;
 
     const syncCart = async () => {
       try {
-        const { data } = await axios.post("/api/cart/update", { cartItems });
-        if (!data.success) toast.error(data.message);
+
+        const { data } = await api.post("/api/cart/update", { cartItems });
+
+        if (!data.success) {
+          toast.error(data.message);
+        }
+
       } catch (error) {
         toast.error(error.message);
       }
     };
 
     syncCart();
+
   }, [cartItems, user]);
 
   /* ===============================
-     Clear Cart on Logout
+     CLEAR CART ON LOGOUT
   ================================ */
+
   useEffect(() => {
+
     if (!user) {
       setCartItems({});
       localStorage.removeItem("cartItems");
     }
+
   }, [user]);
 
   /* ===============================
-     Context Value
+     CONTEXT VALUE
   ================================ */
+
   const value = {
+
     navigate,
     currency,
 
@@ -212,6 +304,7 @@ export const AppContextProvider = ({ children }) => {
 
     cartItems,
     setCartItems,
+
     addToCart,
     updateCartItem,
     removeFromCart,
@@ -222,7 +315,7 @@ export const AppContextProvider = ({ children }) => {
     searchQuery,
     setSearchQuery,
 
-    axios,
+    axios: api,
   };
 
   return (
@@ -231,5 +324,9 @@ export const AppContextProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
+/* ===============================
+   HOOK
+================================ */
 
 export const useAppContext = () => useContext(AppContext);

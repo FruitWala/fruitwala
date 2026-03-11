@@ -6,6 +6,7 @@ import Product from "../models/Product.js";
 ================================ */
 export const placeOrderCOD = async (req, res) => {
   try {
+
     const userId = req.userId;
     const { items, address } = req.body;
 
@@ -14,7 +15,7 @@ export const placeOrderCOD = async (req, res) => {
     }
 
     if (!address || !Array.isArray(items) || items.length === 0) {
-      return res.json({ success: false, message: "Invalid data" });
+      return res.json({ success: false, message: "Invalid order data" });
     }
 
     const MIN_ORDER_VALUE = 300;
@@ -23,21 +24,39 @@ export const placeOrderCOD = async (req, res) => {
     const validatedItems = [];
 
     for (const item of items) {
-      if (!item.product || Number(item.quantity) <= 0) continue;
+
+      if (!item.product || !item.variant || Number(item.quantity) <= 0) {
+        continue;
+      }
 
       const product = await Product.findById(item.product);
+
       if (!product) continue;
 
-      amount += product.offerPrice * item.quantity;
+      const { label, price, offerPrice } = item.variant;
+
+      if (!label) continue;
+
+      const finalPrice = Number(offerPrice);
+
+      amount += finalPrice * item.quantity;
 
       validatedItems.push({
         product: item.product,
-        quantity: item.quantity,
+        variant: {
+          label,
+          price: Number(price),
+          offerPrice: finalPrice,
+        },
+        quantity: Number(item.quantity),
       });
     }
 
     if (validatedItems.length === 0) {
-      return res.json({ success: false, message: "Invalid order items" });
+      return res.json({
+        success: false,
+        message: "Invalid cart items",
+      });
     }
 
     if (amount < MIN_ORDER_VALUE) {
@@ -47,7 +66,7 @@ export const placeOrderCOD = async (req, res) => {
       });
     }
 
-    await Order.create({
+    const order = await Order.create({
       userId,
       items: validatedItems,
       amount: Number(amount.toFixed(2)),
@@ -57,9 +76,19 @@ export const placeOrderCOD = async (req, res) => {
       status: "Order Placed",
     });
 
-    res.json({ success: true, message: "Order Placed Successfully" });
+    res.json({
+      success: true,
+      message: "Order Placed Successfully",
+      orderId: order._id,
+    });
+
   } catch (error) {
-    res.json({ success: false, message: error.message });
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+
   }
 };
 
@@ -68,6 +97,7 @@ export const placeOrderCOD = async (req, res) => {
 ================================ */
 export const getUserOrders = async (req, res) => {
   try {
+
     const userId = req.userId;
 
     if (!userId) {
@@ -75,12 +105,22 @@ export const getUserOrders = async (req, res) => {
     }
 
     const orders = await Order.find({ userId })
-      .populate("items.product address")
+      .populate("items.product")
+      .populate("address")
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, orders });
+    res.json({
+      success: true,
+      orders,
+    });
+
   } catch (error) {
-    res.json({ success: false, message: error.message });
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+
   }
 };
 
@@ -89,13 +129,24 @@ export const getUserOrders = async (req, res) => {
 ================================ */
 export const getAllOrders = async (req, res) => {
   try {
+
     const orders = await Order.find()
-      .populate("items.product address")
+      .populate("items.product")
+      .populate("address")
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, orders });
+    res.json({
+      success: true,
+      orders,
+    });
+
   } catch (error) {
-    res.json({ success: false, message: error.message });
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+
   }
 };
 
@@ -104,31 +155,48 @@ export const getAllOrders = async (req, res) => {
 ================================ */
 export const markCODPaymentReceived = async (req, res) => {
   try {
+
     const { orderId } = req.params;
 
-    if (!orderId) {
-      return res.json({ success: false, message: "Order ID required" });
-    }
-
     const order = await Order.findById(orderId);
+
     if (!order) {
-      return res.json({ success: false, message: "Order not found" });
+      return res.json({
+        success: false,
+        message: "Order not found",
+      });
     }
 
     if (order.paymentType !== "COD") {
-      return res.json({ success: false, message: "Not a COD order" });
+      return res.json({
+        success: false,
+        message: "Not a COD order",
+      });
     }
 
     if (order.isPaid) {
-      return res.json({ success: false, message: "Payment already received" });
+      return res.json({
+        success: false,
+        message: "Payment already received",
+      });
     }
 
     order.isPaid = true;
+
     await order.save();
 
-    res.json({ success: true, message: "Payment marked as received" });
+    res.json({
+      success: true,
+      message: "Payment marked as received",
+    });
+
   } catch (error) {
-    res.json({ success: false, message: error.message });
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+
   }
 };
 
@@ -137,32 +205,27 @@ export const markCODPaymentReceived = async (req, res) => {
 ================================ */
 export const updateOrderStatus = async (req, res) => {
   try {
+
     const { orderId, status } = req.body;
 
-    if (!orderId || !status) {
-      return res.json({ success: false, message: "Invalid data" });
-    }
-
     const order = await Order.findById(orderId);
+
     if (!order) {
-      return res.json({ success: false, message: "Order not found" });
+      return res.json({
+        success: false,
+        message: "Order not found",
+      });
     }
 
     if (order.status === "Delivered" || order.status === "Cancelled") {
       return res.json({
         success: false,
-        message: `Order already ${order.status} and cannot be updated`,
-      });
-    }
-
-    if (status === "Shipped") {
-      return res.json({
-        success: false,
-        message: "Shipped status is not allowed",
+        message: `Order already ${order.status}`,
       });
     }
 
     const allowedStatuses = ["Order Placed", "Delivered", "Cancelled"];
+
     if (!allowedStatuses.includes(status)) {
       return res.json({
         success: false,
@@ -172,7 +235,6 @@ export const updateOrderStatus = async (req, res) => {
 
     order.status = status;
 
-    // ✅ TAG SELLER CANCELLATION
     if (status === "Cancelled") {
       order.cancelledBy = "SELLER";
     }
@@ -183,9 +245,18 @@ export const updateOrderStatus = async (req, res) => {
 
     await order.save();
 
-    res.json({ success: true, message: "Order status updated" });
+    res.json({
+      success: true,
+      message: "Order status updated",
+    });
+
   } catch (error) {
-    res.json({ success: false, message: error.message });
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+
   }
 };
 
@@ -194,20 +265,17 @@ export const updateOrderStatus = async (req, res) => {
 ================================ */
 export const cancelOrderByUser = async (req, res) => {
   try {
+
     const userId = req.userId;
     const { orderId } = req.params;
 
-    if (!userId) {
-      return res.json({ success: false, message: "User not authenticated" });
-    }
-
-    if (!orderId) {
-      return res.json({ success: false, message: "Order ID required" });
-    }
-
     const order = await Order.findOne({ _id: orderId, userId });
+
     if (!order) {
-      return res.json({ success: false, message: "Order not found" });
+      return res.json({
+        success: false,
+        message: "Order not found",
+      });
     }
 
     if (order.status === "Delivered") {
@@ -225,14 +293,21 @@ export const cancelOrderByUser = async (req, res) => {
     }
 
     order.status = "Cancelled";
-    order.cancelledBy = "USER"; // ✅ TAG USER CANCELLATION
+    order.cancelledBy = "USER";
+
     await order.save();
 
     res.json({
       success: true,
       message: "Order cancelled successfully",
     });
+
   } catch (error) {
-    res.json({ success: false, message: error.message });
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+
   }
 };

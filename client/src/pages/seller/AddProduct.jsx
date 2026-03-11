@@ -8,25 +8,30 @@ const AddProduct = () => {
   const { axios, fetchProducts } = useAppContext();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const productId = searchParams.get("id");
 
+  const productId = searchParams.get("id");
   const isEditMode = Boolean(productId);
 
   const [files, setFiles] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [price, setPrice] = useState("");
-  const [offerPrice, setOfferPrice] = useState("");
 
-  /* ================= FETCH PRODUCT (EDIT MODE) ================= */
+  const [variants, setVariants] = useState([
+    { label: "", price: "", offerPrice: "" },
+  ]);
+
+  /* ================= FETCH PRODUCT ================= */
+
   useEffect(() => {
     if (!isEditMode) return;
 
     const fetchProduct = async () => {
       try {
         const { data } = await axios.get(`/api/product/${productId}`);
+
         if (!data.success) {
           toast.error(data.message);
           return;
@@ -37,34 +42,66 @@ const AddProduct = () => {
         setName(product.name || "");
         setDescription(product.description?.join("\n") || "");
         setCategory(product.category || "");
-        setPrice(product.price ?? "");
-        setOfferPrice(product.offerPrice ?? "");
         setExistingImages(product.image || []);
+
+        if (product.variants?.length) {
+          setVariants(product.variants);
+        }
       } catch (error) {
         toast.error(error.message);
       }
     };
 
     fetchProduct();
-  }, [productId, isEditMode, axios]);
+  }, [productId]);
+
+  /* ================= VARIANT HANDLERS ================= */
+
+  const handleVariantChange = (index, field, value) => {
+    const updated = [...variants];
+    updated[index][field] = value;
+    setVariants(updated);
+  };
+
+  const addVariant = () => {
+    setVariants([...variants, { label: "", price: "", offerPrice: "" }]);
+  };
+
+  const removeVariant = (index) => {
+    if (variants.length === 1) {
+      toast.error("At least one variant is required");
+      return;
+    }
+
+    const updated = variants.filter((_, i) => i !== index);
+    setVariants(updated);
+  };
 
   /* ================= SUBMIT HANDLER ================= */
+
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
     try {
       const productData = {
         name: name.trim(),
+
         description: description
           .split("\n")
           .map((d) => d.trim())
           .filter(Boolean),
+
         category,
-        price: Number(price),
-        offerPrice: Number(offerPrice),
+
+        variants: variants.map((v) => ({
+          label: v.label,
+          price: Number(v.price),
+          offerPrice: Number(v.offerPrice),
+        })),
       };
 
       const formData = new FormData();
+
       formData.append("productData", JSON.stringify(productData));
 
       files.forEach((file) => {
@@ -83,19 +120,18 @@ const AddProduct = () => {
       }
 
       toast.success(data.message);
+
       fetchProducts();
 
       if (!isEditMode) {
         setName("");
         setDescription("");
         setCategory("");
-        setPrice("");
-        setOfferPrice("");
+        setVariants([{ label: "", price: "", offerPrice: "" }]);
         setFiles([]);
         setExistingImages([]);
       } else {
-        setFiles([]);
-        navigate("/seller/product-list"); // ✅ ONLY LINE ADDED
+        navigate("/seller/product-list");
       }
     } catch (error) {
       toast.error(error.message);
@@ -108,20 +144,22 @@ const AddProduct = () => {
         onSubmit={onSubmitHandler}
         className="max-w-2xl mx-auto p-4 md:p-10 space-y-6"
       >
-        <h2 className="text-lg font-medium">
+        <h2 className="text-lg font-semibold">
           {isEditMode ? "Edit Product" : "Add New Product"}
         </h2>
 
-        {/* IMAGES */}
+        {/* PRODUCT IMAGES */}
+
         <div>
           <p className="text-sm font-medium mb-2">Product Images</p>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Array(4)
               .fill(null)
               .map((_, index) => (
                 <label
                   key={index}
-                  className="cursor-pointer border rounded flex items-center justify-center bg-gray-50"
+                  className="cursor-pointer border rounded-lg flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition"
                 >
                   <input
                     type="file"
@@ -132,6 +170,7 @@ const AddProduct = () => {
                       setFiles(updated);
                     }}
                   />
+
                   <img
                     src={
                       files[index]
@@ -147,39 +186,46 @@ const AddProduct = () => {
         </div>
 
         {/* PRODUCT NAME */}
+
         <div>
           <label className="text-sm font-medium">Product Name</label>
+
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             type="text"
-            className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
+            className="w-full mt-1 border px-3 py-2 rounded-lg focus:border-primary outline-none"
             required
           />
         </div>
 
         {/* DESCRIPTION */}
+
         <div>
           <label className="text-sm font-medium">Description</label>
+
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full mt-1 border px-3 py-2 rounded resize-none focus:border-primary"
+            className="w-full mt-1 border px-3 py-2 rounded-lg resize-none focus:border-primary outline-none"
             placeholder="One point per line"
           />
         </div>
 
         {/* CATEGORY */}
+
         <div>
           <label className="text-sm font-medium">Category</label>
+
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
+            className="w-full mt-1 border px-3 py-2 rounded-lg focus:border-primary outline-none"
             required
           >
             <option value="">Select Category</option>
+
             {categories.map((item, index) => (
               <option key={index} value={item.path}>
                 {item.path}
@@ -188,36 +234,75 @@ const AddProduct = () => {
           </select>
         </div>
 
-        {/* PRICES */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium">Price</label>
-            <input
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              type="number"
-              min="0"
-              className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
-              required
-            />
+        {/* PRODUCT VARIANTS */}
+
+        <div>
+          <label className="text-sm font-semibold">Product Variants</label>
+
+          <div className="mt-3 space-y-3">
+            {variants.map((variant, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-12 gap-3 items-center border rounded-lg p-3 bg-gray-50"
+              >
+                <input
+                  type="text"
+                  placeholder="Label (250g / 1kg / 6 pcs)"
+                  value={variant.label}
+                  onChange={(e) =>
+                    handleVariantChange(index, "label", e.target.value)
+                  }
+                  className="col-span-4 border px-3 py-2 rounded-lg outline-none"
+                  required
+                />
+
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={variant.price}
+                  onChange={(e) =>
+                    handleVariantChange(index, "price", e.target.value)
+                  }
+                  className="col-span-3 border px-3 py-2 rounded-lg outline-none"
+                  required
+                />
+
+                <input
+                  type="number"
+                  placeholder="Offer Price"
+                  value={variant.offerPrice}
+                  onChange={(e) =>
+                    handleVariantChange(index, "offerPrice", e.target.value)
+                  }
+                  className="col-span-3 border px-3 py-2 rounded-lg outline-none"
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() => removeVariant(index)}
+                  className="col-span-2 flex justify-center items-center text-red-500 hover:bg-red-100 rounded-lg text-lg h-full"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Offer Price</label>
-            <input
-              value={offerPrice}
-              onChange={(e) => setOfferPrice(e.target.value)}
-              type="number"
-              min="0"
-              className="w-full mt-1 border px-3 py-2 rounded focus:border-primary"
-              required
-            />
-          </div>
+          <button
+            type="button"
+            onClick={addVariant}
+            className="mt-4 text-sm text-primary font-medium hover:underline"
+          >
+            + Add Variant
+          </button>
         </div>
+
+        {/* SUBMIT */}
 
         <button
           type="submit"
-          className="w-full sm:w-auto px-10 py-2.5 bg-primary text-white rounded hover:bg-primary-dull transition"
+          className="w-full sm:w-auto px-10 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dull transition"
         >
           {isEditMode ? "Update Product" : "Add Product"}
         </button>

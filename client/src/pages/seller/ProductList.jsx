@@ -34,6 +34,17 @@ const ProductList = () => {
     }
   };
 
+  /* ================= PRICE HELPER ================= */
+  const getDisplayPrice = (product) => {
+    return (
+      product?.variants?.[0]?.offerPrice ??
+      product?.offerPrice ??
+      product?.variants?.[0]?.price ??
+      product?.price ??
+      0
+    );
+  };
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="w-full md:p-10 p-4">
@@ -69,12 +80,13 @@ const ProductList = () => {
                     {product.category}
                   </td>
 
+                  {/* ✅ FIXED PRICE */}
                   <td className="px-4 py-3 text-center">
                     {currency}
-                    {product.offerPrice}
+                    {getDisplayPrice(product)}
                   </td>
 
-                  {/* STOCK TOGGLE — ORIGINAL UI */}
+                  {/* STOCK */}
                   <td className="px-4 py-3 text-center">
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -133,9 +145,11 @@ const ProductList = () => {
                   <p className="text-sm text-gray-500">
                     {product.category}
                   </p>
+
+                  {/* ✅ FIXED PRICE */}
                   <p className="text-primary">
                     {currency}
-                    {product.offerPrice}
+                    {getDisplayPrice(product)}
                   </p>
                 </div>
               </div>

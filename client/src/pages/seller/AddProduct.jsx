@@ -45,7 +45,13 @@ const AddProduct = () => {
         setExistingImages(product.image || []);
 
         if (product.variants?.length) {
-          setVariants(product.variants);
+          setVariants(
+            product.variants.map((v) => ({
+              label: v.label,
+              price: v.price,
+              offerPrice: v.offerPrice,
+            }))
+          );
         }
       } catch (error) {
         toast.error(error.message);
@@ -77,12 +83,65 @@ const AddProduct = () => {
     setVariants(updated);
   };
 
+  /* ================= HELPER: PARSE LABEL ================= */
+
+  const parseVariant = (label) => {
+    let value = 1;
+    let unit = "pcs";
+
+    if (!label) return { value, unit }; // ✅ FIX
+
+    const text = label.toLowerCase().trim();
+
+    if (text.includes("kg")) {
+      value = parseFloat(text) || 1;
+      unit = "kg";
+    } else if (text.includes("g")) {
+      value = parseFloat(text) || 1;
+      unit = "g";
+    } else if (text.includes("ml")) {
+      value = parseFloat(text) || 1;
+      unit = "ml";
+    } else if (text.includes("l")) {
+      value = parseFloat(text) || 1;
+      unit = "l";
+    } else if (text.includes("piece") || text.includes("pc")) {
+      value = 1;
+      unit = "pcs";
+    }
+
+    return { value, unit };
+  };
+
   /* ================= SUBMIT HANDLER ================= */
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
     try {
+      // ✅ FIX: remove empty variants
+      const validVariants = variants.filter(
+        (v) => v.label && v.price && v.offerPrice
+      );
+
+      // ✅ FIX: prevent empty submission
+      if (validVariants.length === 0) {
+        toast.error("Please add at least one valid variant");
+        return;
+      }
+
+      const formattedVariants = validVariants.map((v) => {
+        const { value, unit } = parseVariant(v.label);
+
+        return {
+          label: v.label,
+          value,
+          unit,
+          price: Number(v.price),
+          offerPrice: Number(v.offerPrice),
+        };
+      });
+
       const productData = {
         name: name.trim(),
 
@@ -93,15 +152,12 @@ const AddProduct = () => {
 
         category,
 
-        variants: variants.map((v) => ({
-          label: v.label,
-          price: Number(v.price),
-          offerPrice: Number(v.offerPrice),
-        })),
+        variants: formattedVariants,
       };
 
-      const formData = new FormData();
+      console.log(productData);
 
+      const formData = new FormData();
       formData.append("productData", JSON.stringify(productData));
 
       files.forEach((file) => {
